@@ -4,9 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/4406/4406124.png" type="image/x-icon">
+    <title>Class Schedule :: Video Player</title>
+    <script type='text/javascript' src='//code.jquery.com/jquery-3.7.0.js'></script>
+    <script type='text/javascript'>
+        $(window).load(function () {
+            var $frame = $("iframe");
+            $frame.contents().bind("mouseup", function (e) {
+                alert('inside');
+            });
+        });
+    </script>
 </head>
 <style>
+    body {
+        background: black;
+    }
+
     iframe.fullScreen {
         width: 100%;
         height: 100%;

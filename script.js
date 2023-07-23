@@ -1,6 +1,6 @@
-function createYouTubeVideoIframe(videoId, width, height, autoplay = false) {
+function createYouTubeVideoIframe(videoId, width, height) {
     const iframe = document.createElement('iframe');
-    iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0${autoplay ? '&autoplay=1' : ''}`;
+    iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1'}`;
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
     iframe.allowFullscreen = true;
     iframe.width = width;
@@ -38,29 +38,17 @@ const height = window.innerHeight;
 const autoplay = true; // Set to true if you want the video to autoplay, otherwise, omit this argument or set it to false.
 
 function playYouTubeVideoInFullscreen(videoId, width, height) {
-    const iframe = createYouTubeVideoIframe(videoId, width, height, true); // Set autoplay to true
+    const iframe = createYouTubeVideoIframe(videoId, width, height); // Set autoplay to true
     document.getElementById('video-container').innerHTML = ''
     document.getElementById('video-container').appendChild(iframe);
     makeFullScreen()
     // Play the video
-    iframe.addEventListener('load', () => {
-        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        iframe.requestFullscreen();
+    // iframe.addEventListener('load', () => {
+    //     iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+    //     makeFullScreen()
 
-    });
+    // });
 
-    // Request fullscreen after the video starts playing
-    iframe.addEventListener('play', () => {
-        if (iframe.requestFullscreen) {
-            iframe.requestFullscreen();
-        } else if (iframe.mozRequestFullScreen) {
-            iframe.mozRequestFullScreen();
-        } else if (iframe.webkitRequestFullscreen) {
-            iframe.webkitRequestFullscreen();
-        } else if (iframe.msRequestFullscreen) {
-            iframe.msRequestFullscreen();
-        }
-    });
 }
 
-playYouTubeVideoInFullscreen(videoId, width, height, autoplay)
+playYouTubeVideoInFullscreen(videoId, width, height)
