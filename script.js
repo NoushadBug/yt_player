@@ -49,6 +49,7 @@ function playYouTubeVideoInFullscreen(videoId, width, height) {
 // Function to calculate the remaining time until the video starts
 // Function to calculate the remaining time until the video starts
 function getRemainingTime(currentTime, schoolStartTime) {
+    var isNextDay = false
     const current = new Date('1970-01-01 ' + currentTime);
     let start = new Date('1970-01-01 ' + schoolStartTime);
 
@@ -56,6 +57,7 @@ function getRemainingTime(currentTime, schoolStartTime) {
     // If so, assume the school start time is on the next day
     if (start.getTime() < current.getTime()) {
         start = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+        isNextDay = true
     }
 
     let diff = (start.getTime() - current.getTime()) / 1000;
@@ -64,7 +66,7 @@ function getRemainingTime(currentTime, schoolStartTime) {
     diff = diff % 3600;
     const minutes = Math.floor(diff / 60);
 
-    return `${hours} hours ${minutes} mins`;
+    return `${hours} hours ${minutes} mins ${isNextDay? "(Next Day)":""}`;
 }
 
 
