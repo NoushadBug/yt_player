@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="https://cdn-icons-png.flaticon.com/512/4406/4406124.png" type="image/x-icon">
+    <title>Class Schedule :: Video Player</title>
+    <!-- <script type='text/javascript' src='//code.jquery.com/jquery-3.7.0.js'></script> -->
+
+</head>
+<style>
+    body {
+        background: black;
+    }
+
+    iframe.fullScreen {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+</style>
+
+<body>
+    <div id="video-container"></div>
+</body>
+<script>
+    function createYouTubeVideoIframe(videoId, width, height) {
+        const iframe = document.createElement('iframe');
+
+        iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1&controls=0&modestbranding=1&showinfo=0&enablejsapi=1&origin=http%3A%2F%2Flocalhost%3A5500&widgetid=1'`;
+        iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+        iframe.allowFullscreen = true;
+        iframe.width = width;
+        iframe.height = height;
+        iframe.frameBorder = 0;
+        return iframe;
+    }
+
+    function requestFullScreen(element) {
+
+        // $('iframe#video-container.fullScreen')[0].contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+
+        // Supports most browsers and their versions.
+        var requestMethod = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || element.msRequestFullscreen;
+
+        if (requestMethod) { // Native full screen.
+            requestMethod.call(element);
+        } else if (typeof window.ActiveXObject !== "undefined") { // Older IE.
+            var wscript = new ActiveXObject("WScript.Shell");
+            if (wscript !== null) {
+                wscript.SendKeys("{F11}");
+            }
+        }
+    }
+    // FullScreen function
+    function makeFullScreen() {
+        document.getElementsByTagName("iframe")[0].className = "fullScreen";
+        var elem = document.body;
+        requestFullScreen(elem);
+    }
+
+
+    const videoId = 'c3_v_9Vk-pc';
+    // const width = 640;
+    // const height = 360;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const autoplay = true; // Set to true if you want the video to autoplay, otherwise, omit this argument or set it to false.
+
+    function playYouTubeVideoInFullscreen(videoId, width, height) {
+        const iframe = createYouTubeVideoIframe(videoId, width, height); // Set autoplay to true
+        document.getElementById('video-container').innerHTML = ''
+        document.getElementById('video-container').appendChild(iframe);
+        stopPlayerHack(iframe)
+        makeFullScreen()
+        // Play the video
+        // iframe.addEventListener('load', () => {
+        //     iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+        //     makeFullScreen()
+
+        // });
+    }
+
+    const stopPlayerHack = (iframe) => {
+        let src = iframe.getAttribute('src');
+        iframe.setAttribute('src', '');
+        iframe.setAttribute('src', src);
+    }
+
+    playYouTubeVideoInFullscreen(videoId, width, height)
+
+</script>
+
+</html>
