@@ -1,9 +1,6 @@
-const SCHOOL_START_TIME = "7:25 AM"; // Set the school start time in 12-hour format
+var SCHOOL_START_TIME = "--"; // Set the school start time in 12-hour format
+var fetchedSchoolStartTime = false
 
-
-const script = document.createElement('script');
-script.src = 'env.js';
-document.head.appendChild(script);
 
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -66,7 +63,7 @@ function getRemainingTime(currentTime, schoolStartTime) {
     diff = diff % 3600;
     const minutes = Math.floor(diff / 60);
 
-    return `${hours} hours ${minutes} mins ${isNextDay? "(Next Day)":""}`;
+    return `${hours} hours ${minutes} mins ${isNextDay ? "(Next Day)" : ""}`;
 }
 
 
@@ -76,6 +73,14 @@ function startProcess() {
     // Show the loading image
     document.getElementById('start_btn').innerHTML = '';
     document.getElementById('loadingImage').style.display = 'inline';
+    document.querySelector(".middle-container").classList.remove("bottom-50")
+    document.querySelector(".middle-container").classList.remove("end-50")
+    document.querySelector(".middle-container").style.top = '45%';
+    document.querySelector(".middle-container").style.left = '40%';
+
+    if (!fetchedSchoolStartTime) {
+        getSchoolStartTimeFromAPI()
+    }
 
     intervalId = setInterval(() => {
         const currentTime = getCurrentTime();
@@ -105,6 +110,9 @@ function startProcess() {
                     // Hide the loading image and restore the start button text
                     document.getElementById('loadingImage').style.display = 'none';
                     document.getElementById('start_btn').innerHTML = '';
+
+                    document.querySelector(".middle-container").classList.add("bottom-50")
+                    document.querySelector(".middle-container").classList.add("end-50")
                 });
         }
     }, 1000);
@@ -128,7 +136,20 @@ function getCurrentTime(utcOffset = -7) {
     return localTime;
 }
 
+function getSchoolStartTimeFromAPI() {
+    if (SCRIPT_ID) {
+        fetch(`https://script.google.com/macros/s/${SCRIPT_ID}/exec?action=getSchoolStartTime`)
+            .then(response => response.json())
+            .then(data => {
+                fetchedSchoolStartTime = true;
+                SCHOOL_START_TIME = data.start_time;
+                console.log("School Start Time: " + SCHOOL_START_TIME);
+            })
+            .catch(error => {
+                console.error('Error fetching school start time from the API:', error);
+            });
+    }
+}
 
-
-// Call startProcess to begin the whole process
-// startProcess();
+// Call the function to get the school start time from the API and compare it with the current time
+getSchoolStartTimeFromAPI();
