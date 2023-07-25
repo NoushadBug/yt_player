@@ -2,8 +2,6 @@ var SCHOOL_START_TIME = "--"; // Set the school start time in 12-hour format
 var SCHOOL_END_TIME = ''
 var VIDEO_DURATION = ''
 var fetchedSchoolStartTime = false
-
-
 const width = window.innerWidth;
 const height = window.innerHeight;
 
@@ -12,8 +10,8 @@ function createYouTubeVideoIframe(videoId, width, height) {
     iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1&modestbranding=1&fs=1&showinfo=0&enablejsapi=1&origin=http%3A%2F%2Flocalhost%3A5500&widgetid=1'`;
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
     iframe.allowFullscreen = true;
-    iframe.width = width;
-    iframe.height = height;
+    iframe.width = window.innerWidth;
+    iframe.height = window.innerHeight;
     iframe.frameBorder = 0;
     return iframe;
 }
@@ -41,6 +39,7 @@ function playYouTubeVideoInFullscreen(videoId, width, height) {
     const iframe = createYouTubeVideoIframe(videoId, width, height);
     document.getElementById('video-container').innerHTML = '';
     document.getElementById('video-container').appendChild(iframe);
+    makeFullScreen()
 }
 
 // Function to calculate the remaining time until the video starts
@@ -70,9 +69,11 @@ var intervalId; // Global variable to store the interval ID
 var videoPlaying = false; // Global variable to track if the video is currently being shown
 
 function startProcess() {
+
     // Show the loading image
     document.getElementById('start_btn').innerHTML = '';
     if (!videoPlaying) {
+        makeFullScreen()
         document.getElementById('loadingImage').style.display = 'inline';
         document.querySelector(".middle-container").classList.remove("bottom-50")
         document.querySelector(".middle-container").classList.remove("end-50")
@@ -101,7 +102,6 @@ function startProcess() {
             // Stop the interval and set videoPlaying to true
             clearInterval(intervalId);
             videoPlaying = true;
-            makeFullScreen()
             fetch(`https://script.google.com/macros/s/${SCRIPT_ID}/exec?action=getScheduledVideoId`)
                 .then(response => response.json())
                 .then(data => {
