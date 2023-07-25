@@ -32,7 +32,6 @@ function requestFullScreen(element) {
 }
 
 function makeFullScreen() {
-    document.getElementsByTagName("iframe")[0].className = "fullScreen";
     var elem = document.body;
     elem.click()
     requestFullScreen(elem);
