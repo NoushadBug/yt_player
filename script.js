@@ -1,4 +1,6 @@
 var SCHOOL_START_TIME = "--"; // Set the school start time in 12-hour format
+var SCHOOL_END_TIME = ''
+var VIDEO_DURATION = ''
 var fetchedSchoolStartTime = false
 
 
@@ -40,10 +42,8 @@ function playYouTubeVideoInFullscreen(videoId, width, height) {
     const iframe = createYouTubeVideoIframe(videoId, width, height);
     document.getElementById('video-container').innerHTML = '';
     document.getElementById('video-container').appendChild(iframe);
-    makeFullScreen();
 }
 
-// Function to calculate the remaining time until the video starts
 // Function to calculate the remaining time until the video starts
 function getRemainingTime(currentTime, schoolStartTime) {
     var isNextDay = false
@@ -63,23 +63,29 @@ function getRemainingTime(currentTime, schoolStartTime) {
     diff = diff % 3600;
     const minutes = Math.floor(diff / 60);
 
-    return `${hours} hours ${minutes} mins ${isNextDay ? "(Next Day)" : ""}`;
+    return (!isNaN(hours) && !isNaN(minutes)) ? `${hours} hours ${minutes} mins ${isNextDay ? "(Next Day)" : ""}` : "--";
 }
 
 
-let intervalId = null;
+var intervalId; // Global variable to store the interval ID
+var videoPlaying = false; // Global variable to track if the video is currently being shown
 
 function startProcess() {
     // Show the loading image
     document.getElementById('start_btn').innerHTML = '';
-    document.getElementById('loadingImage').style.display = 'inline';
-    document.querySelector(".middle-container").classList.remove("bottom-50")
-    document.querySelector(".middle-container").classList.remove("end-50")
-    document.querySelector(".middle-container").style.top = '45%';
-    document.querySelector(".middle-container").style.left = '40%';
+    if (!videoPlaying) {
+        document.getElementById('loadingImage').style.display = 'inline';
+        document.querySelector(".middle-container").classList.remove("bottom-50")
+        document.querySelector(".middle-container").classList.remove("end-50")
+        document.querySelector(".middle-container").style.top = '45%';
+        document.querySelector(".middle-container").style.left = '40%';
+        document.querySelector(".middle-container").classList.remove('d-none')
+    } else {
+        document.querySelector(".middle-container").classList.add('d-none')
+    }
 
     if (!fetchedSchoolStartTime) {
-        getSchoolStartTimeFromAPI()
+        getSchoolStartTimeFromAPI();
     }
 
     intervalId = setInterval(() => {
@@ -91,9 +97,12 @@ function startProcess() {
         School Start Time: ${SCHOOL_START_TIME}
         Video Starts in: ${remainingTime}`;
 
-        // Check if the current time matches the school start time
-        if (currentTime === SCHOOL_START_TIME) {
-            clearInterval(intervalId); // Stop the interval
+        // Check if the current time matches the school start time and video is not already playing
+        if (currentTime === SCHOOL_START_TIME && !videoPlaying) {
+            // Stop the interval and set videoPlaying to true
+            clearInterval(intervalId);
+            videoPlaying = true;
+            makeFullScreen()
             fetch(`https://script.google.com/macros/s/${SCRIPT_ID}/exec?action=getScheduledVideoId`)
                 .then(response => response.json())
                 .then(data => {
@@ -106,17 +115,27 @@ function startProcess() {
                     console.error('Error fetching video ID from the API:', error);
                 })
                 .finally(() => {
-                    document.querySelector("#currentTime").innerHTML = ''
                     // Hide the loading image and restore the start button text
+
                     document.getElementById('loadingImage').style.display = 'none';
                     document.getElementById('start_btn').innerHTML = '';
-
                     document.querySelector(".middle-container").classList.add("bottom-50")
                     document.querySelector(".middle-container").classList.add("end-50")
+
+                    // Set videoPlaying to false and start the interval again
+                    intervalId = setInterval(startProcess, 1000);
                 });
+        }
+        // Check if the current time matches the school end time
+        if (currentTime === SCHOOL_END_TIME) {
+            console.log('siu sesh')
+            document.getElementById('video-container').innerHTML = '';
+            videoPlaying = false;
+            fetchedSchoolStartTime = false
         }
     }, 1000);
 }
+
 
 
 function getCurrentTime(utcOffset = -7) {
@@ -136,14 +155,71 @@ function getCurrentTime(utcOffset = -7) {
     return localTime;
 }
 
+function calculateEndTime(startTime, duration) {
+    const start = new Date('1970-01-01 ' + startTime);
+
+    let hours = 0;
+    let minutes = 0;
+
+    // Parse the duration format "1h2m" or "2h" or "30m"
+    const hoursMatch = duration.match(/(\d+)h/);
+    const minutesMatch = duration.match(/(\d+)m/);
+
+    if (hoursMatch) {
+        hours = parseInt(hoursMatch[1]);
+    }
+
+    if (minutesMatch) {
+        minutes = parseInt(minutesMatch[1]);
+    }
+
+    // Add the duration to the start time
+    const end = new Date(start.getTime() + hours * 60 * 60 * 1000 + minutes * 60 * 1000);
+
+    // If the end time goes beyond 24 hours, adjust the date
+    if (end.getDate() !== start.getDate()) {
+        end.setDate(start.getDate() + 1); // Add one day
+        end.setMonth(start.getMonth());
+        end.setFullYear(start.getFullYear());
+    }
+
+    let endHours = end.getHours();
+    let endMinutes = end.getMinutes();
+    let ampm = "AM";
+
+    // Convert to 12-hour format and determine AM/PM
+    if (endHours >= 12) {
+        ampm = "PM";
+    }
+
+    if (endHours > 12) {
+        endHours -= 12;
+    } else if (endHours === 0) {
+        endHours = 12;
+    }
+
+    endHours = endHours.toString().padStart(2, '0');
+    endMinutes = endMinutes.toString().padStart(2, '0');
+
+    return endHours + ':' + endMinutes + ' ' + ampm;
+}
+
 function getSchoolStartTimeFromAPI() {
     if (SCRIPT_ID) {
-        fetch(`https://script.google.com/macros/s/${SCRIPT_ID}/exec?action=getSchoolStartTime`)
+        fetch(`https://script.google.com/macros/s/${SCRIPT_ID}/exec?action=getSchoolStartAndEndTime`)
             .then(response => response.json())
             .then(data => {
-                fetchedSchoolStartTime = true;
-                SCHOOL_START_TIME = data.start_time;
-                console.log("School Start Time: " + SCHOOL_START_TIME);
+                if (data.start_time) {
+                    fetchedSchoolStartTime = true;
+                    SCHOOL_START_TIME = data.start_time.start_time;
+                    VIDEO_DURATION = data.start_time.end_time;
+                    SCHOOL_END_TIME = calculateEndTime(SCHOOL_START_TIME, VIDEO_DURATION);
+                    console.log("School Start Time: " + SCHOOL_START_TIME);
+                    console.log("VIDEO_DURATION: " + VIDEO_DURATION);
+                    console.log("School End Time: " + SCHOOL_END_TIME);
+                } else {
+                    console.log("No schedule for today...")
+                }
             })
             .catch(error => {
                 console.error('Error fetching school start time from the API:', error);
