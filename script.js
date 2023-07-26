@@ -1,6 +1,9 @@
 var SCHOOL_START_TIME = "--"; // Set the school start time in 12-hour format
+var NEXT_DATE = ''
 var SCHOOL_END_TIME = ''
 var VIDEO_DURATION = ''
+var NEXT_SCHOOL_SCHEDULE = ''
+var NEXT_DAY_MESSAGE = ''
 var fetchedSchoolStartTime = false
 const width = window.innerWidth;
 const height = window.innerHeight;
@@ -43,9 +46,13 @@ function playYouTubeVideoInFullscreen(videoId, width, height) {
 }
 
 function getRemainingTime(currentTime, schoolStartTime) {
-    const current = new Date('1970-01-01 ' + currentTime);
-    let start = new Date('1970-01-01 ' + schoolStartTime);
-
+    const current = new Date(checkTodayLocalDate() + " " + currentTime);
+    let start = new Date(NEXT_DATE + " " + schoolStartTime);
+    console.log("current: " + current)
+    console.log("start: " + start)
+    console.log(checkTodayLocalDate() + " " + currentTime)
+    console.log(NEXT_DATE + " " + schoolStartTime)
+    // console.log(NEXT_DATE)
     // Check if the school start time is before the current time
     // If so, assume the school start time is on the next day
     if (start.getTime() < current.getTime()) {
@@ -59,7 +66,8 @@ function getRemainingTime(currentTime, schoolStartTime) {
     diff = diff % 3600;
     const minutes = Math.floor(diff / 60);
 
-    return (!isNaN(days) && !isNaN(hours) && !isNaN(minutes)) ? `${days} days ${hours} hours ${minutes} mins` : "--";
+    // return (!isNaN(days) && !isNaN(hours) && !isNaN(minutes)) ? `${days} days ${hours} hours ${minutes} mins` : "--";
+    return `${days} days ${hours} hours ${minutes} mins`;
 }
 
 
@@ -69,6 +77,7 @@ var videoPlaying = false; // Global variable to track if the video is currently 
 
 function startProcess() {
 
+    console.log(currentTime)
     // Show the loading image
     document.getElementById('start_btn').innerHTML = '';
     if (!videoPlaying) {
@@ -93,7 +102,7 @@ function startProcess() {
 
         // Display the time information
         document.querySelector("#currentTime").innerText = `Current Time: ${currentTime}
-        School Start Time: ${SCHOOL_START_TIME}
+        Next School Day: ${NEXT_DAY_MESSAGE ? NEXT_DAY_MESSAGE + " " : ""} ${NEXT_SCHOOL_SCHEDULE ? "(" + NEXT_SCHOOL_SCHEDULE + ")" : ""}
         Video Starts in: ${remainingTime}`;
 
         // Check if the current time matches the school start time and video is not already playing
@@ -120,18 +129,37 @@ function startProcess() {
                     document.querySelector(".middle-container").classList.add("bottom-50")
                     document.querySelector(".middle-container").classList.add("end-50")
 
+                    // Check if the current time matches the school end time
+                    if (currentTime === SCHOOL_END_TIME) {
+                        document.getElementById('video-container').innerHTML = '';
+                        videoPlaying = false;
+                        fetchedSchoolStartTime = false
+                    }
                     // Set videoPlaying to false and start the interval again
                     intervalId = setInterval(startProcess, 1000);
                 });
         }
+
         // Check if the current time matches the school end time
         if (currentTime === SCHOOL_END_TIME) {
-            console.log('siu sesh')
             document.getElementById('video-container').innerHTML = '';
             videoPlaying = false;
             fetchedSchoolStartTime = false
         }
     }, 1000);
+}
+
+function checkTodayLocalDate(offset = -7) {
+    var today = new Date();
+    var utc = today.getTime() + (today.getTimezoneOffset() * 60000);
+    today = new Date(utc + (3600000 * offset));
+
+    var month = (today.getMonth() + 1).toString().padStart(2, '0');
+    var day = today.getDate().toString().padStart(2, '0');
+    var year = today.getFullYear();
+
+    // Return the date in MM/dd/yyyy format
+    return `${month}/${day}/${year}`;
 }
 
 
@@ -207,14 +235,17 @@ function getSchoolStartTimeFromAPI() {
         fetch(`https://script.google.com/macros/s/${SCRIPT_ID}/exec?action=getSchoolStartAndEndTime`)
             .then(response => response.json())
             .then(data => {
-                if (data.start_time) {
+                if (data.time) {
                     fetchedSchoolStartTime = true;
-                    SCHOOL_START_TIME = data.start_time.start_time;
-                    VIDEO_DURATION = data.start_time.end_time;
+                    SCHOOL_START_TIME = data.time.start_time;
+                    VIDEO_DURATION = data.time.video_duration;
+                    NEXT_DAY_MESSAGE = data.next_day_data.next_day_message;
+                    NEXT_SCHOOL_SCHEDULE = data.next_day_data.next_day_schedule;
+                    NEXT_DATE = data.next_day_data.next_day;
                     SCHOOL_END_TIME = calculateEndTime(SCHOOL_START_TIME, VIDEO_DURATION);
-                    console.log("School Start Time: " + SCHOOL_START_TIME);
-                    console.log("VIDEO_DURATION: " + VIDEO_DURATION);
-                    console.log("School End Time: " + SCHOOL_END_TIME);
+                    // console.log("School Start Time: " + SCHOOL_START_TIME);
+                    // console.log("VIDEO_DURATION: " + VIDEO_DURATION);
+                    // console.log("School End Time: " + SCHOOL_END_TIME);
                 } else {
                     console.log("No schedule for today...")
                 }
