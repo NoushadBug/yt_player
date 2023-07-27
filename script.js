@@ -4,9 +4,14 @@ var SCHOOL_END_TIME = ''
 var VIDEO_DURATION = ''
 var NEXT_SCHOOL_SCHEDULE = ''
 var NEXT_DAY_MESSAGE = ''
+var NO_SCHEDULE_TODAY = ''
 var fetchedSchoolStartTime = false
 const width = window.innerWidth;
 const height = window.innerHeight;
+
+var intervalId; // Global variable to store the interval ID
+var videoPlaying = false; // Global variable to track if the video is currently being shown
+
 
 function createYouTubeVideoIframe(videoId, width, height) {
     const iframe = document.createElement('iframe');
@@ -47,37 +52,37 @@ function playYouTubeVideoInFullscreen(videoId, width, height) {
 
 function getRemainingTime(currentTime, schoolStartTime) {
     const current = new Date(checkTodayLocalDate() + " " + currentTime);
-    let start = new Date(NEXT_DATE + " " + schoolStartTime);
-    console.log("current: " + current)
-    console.log("start: " + start)
-    console.log(checkTodayLocalDate() + " " + currentTime)
-    console.log(NEXT_DATE + " " + schoolStartTime)
-    // console.log(NEXT_DATE)
-    // Check if the school start time is before the current time
-    // If so, assume the school start time is on the next day
-    if (start.getTime() < current.getTime()) {
-        start = new Date(start.getTime() + 24 * 60 * 60 * 1000);
-    }
+    var startdate = checkTodayLocalDate();
+    let start = new Date(startdate + " " + schoolStartTime);
 
+    // Check if the school start time is before the current time
+    if (start.getTime() < current.getTime() || NO_SCHEDULE_TODAY) {
+        // console.log('next day..')
+        start = new Date(NEXT_DATE + " " + schoolStartTime);
+        startdate = NEXT_DATE;
+        // console.log(start + "\n")
+    }
+    
+    // console.log(current)
     let diff = (start.getTime() - current.getTime()) / 1000;
     const days = Math.floor(diff / 86400);
     diff = diff % 86400;
     const hours = Math.floor(diff / 3600);
     diff = diff % 3600;
     const minutes = Math.floor(diff / 60);
+    const seconds = Math.floor(diff % 60); // Calculate the remaining seconds
 
-    // return (!isNaN(days) && !isNaN(hours) && !isNaN(minutes)) ? `${days} days ${hours} hours ${minutes} mins` : "--";
-    return `${days} days ${hours} hours ${minutes} mins`;
+    const message = (!isNaN(days) && !isNaN(hours) && !isNaN(minutes) && !isNaN(seconds))
+        ? `${days} days ${hours} hours ${minutes} mins ${seconds} secs`
+        : "--";
+    const isStartTimeToday = checkTodayLocalDate() === startdate;
+
+    return { message: message, isStartTimeToday: isStartTimeToday };
 }
 
 
 
-var intervalId; // Global variable to store the interval ID
-var videoPlaying = false; // Global variable to track if the video is currently being shown
-
-function startProcess() {
-
-    console.log(currentTime)
+async function startProcess() {
     // Show the loading image
     document.getElementById('start_btn').innerHTML = '';
     if (!videoPlaying) {
@@ -93,7 +98,7 @@ function startProcess() {
     }
 
     if (!fetchedSchoolStartTime) {
-        getSchoolStartTimeFromAPI();
+       await getSchoolStartTimeFromAPI();
     }
 
     intervalId = setInterval(() => {
@@ -103,10 +108,10 @@ function startProcess() {
         // Display the time information
         document.querySelector("#currentTime").innerText = `Current Time: ${currentTime}
         Next School Day: ${NEXT_DAY_MESSAGE ? NEXT_DAY_MESSAGE + " " : ""} ${NEXT_SCHOOL_SCHEDULE ? "(" + NEXT_SCHOOL_SCHEDULE + ")" : ""}
-        Video Starts in: ${remainingTime}`;
+        Video Starts in: ${remainingTime.message}`;
 
         // Check if the current time matches the school start time and video is not already playing
-        if (currentTime === SCHOOL_START_TIME && !videoPlaying) {
+        if (currentTime === SCHOOL_START_TIME && !videoPlaying && remainingTime.isStartTimeToday) {
             // Stop the interval and set videoPlaying to true
             clearInterval(intervalId);
             videoPlaying = true;
@@ -130,7 +135,8 @@ function startProcess() {
                     document.querySelector(".middle-container").classList.add("end-50")
 
                     // Check if the current time matches the school end time
-                    if (currentTime === SCHOOL_END_TIME) {
+                    if (currentTime >= SCHOOL_END_TIME) {
+                        console.log("\nThe end time has been arrived (inside finally block): "+ currentTime)
                         document.getElementById('video-container').innerHTML = '';
                         videoPlaying = false;
                         fetchedSchoolStartTime = false
@@ -140,8 +146,10 @@ function startProcess() {
                 });
         }
 
+        console.log("current time: "+ currentTime)
         // Check if the current time matches the school end time
         if (currentTime === SCHOOL_END_TIME) {
+            console.log("\nThe end time has been arrived: "+ currentTime)
             document.getElementById('video-container').innerHTML = '';
             videoPlaying = false;
             fetchedSchoolStartTime = false
@@ -162,8 +170,6 @@ function checkTodayLocalDate(offset = -7) {
     return `${month}/${day}/${year}`;
 }
 
-
-
 function getCurrentTime(utcOffset = -7) {
     var now = new Date();
     var offsetMillis = utcOffset * 60 * 60 * 1000;
@@ -182,6 +188,25 @@ function getCurrentTime(utcOffset = -7) {
 }
 
 function calculateEndTime(startTime, duration) {
+    if (isNaN(Date.parse(startTime)) || isNaN(parseInt(duration))) {
+        // Set SCHOOL_START_TIME as 1 hour less than getCurrentTime()
+        const currentTime = getCurrentTime();
+        const currentTimeHours = parseInt(currentTime.split(':')[0]);
+        const currentTimeMinutes = parseInt(currentTime.split(':')[1].split(' ')[0]);
+
+        let startHours = currentTimeHours - 1;
+        let startMinutes = currentTimeMinutes;
+
+        if (startHours < 0) {
+            startHours = 11;
+            startMinutes = 30;
+        }
+
+        startTime = 
+            startHours.toString().padStart(2, '0') + ':' + startMinutes.toString().padStart(2, '0') + ' ' + currentTime.split(' ')[1];
+        duration = '30m';
+    }
+
     const start = new Date('1970-01-01 ' + startTime);
 
     let hours = 0;
@@ -230,25 +255,41 @@ function calculateEndTime(startTime, duration) {
     return endHours + ':' + endMinutes + ' ' + ampm;
 }
 
-function getSchoolStartTimeFromAPI() {
+async function getSchoolStartTimeFromAPI() {
     if (SCRIPT_ID) {
         fetch(`https://script.google.com/macros/s/${SCRIPT_ID}/exec?action=getSchoolStartAndEndTime`)
             .then(response => response.json())
             .then(data => {
                 if (data.time) {
+                    NO_SCHEDULE_TODAY = false
                     fetchedSchoolStartTime = true;
                     SCHOOL_START_TIME = data.time.start_time;
                     VIDEO_DURATION = data.time.video_duration;
-                    NEXT_DAY_MESSAGE = data.next_day_data.next_day_message;
-                    NEXT_SCHOOL_SCHEDULE = data.next_day_data.next_day_schedule;
-                    NEXT_DATE = data.next_day_data.next_day;
-                    SCHOOL_END_TIME = calculateEndTime(SCHOOL_START_TIME, VIDEO_DURATION);
-                    // console.log("School Start Time: " + SCHOOL_START_TIME);
-                    // console.log("VIDEO_DURATION: " + VIDEO_DURATION);
-                    // console.log("School End Time: " + SCHOOL_END_TIME);
                 } else {
-                    console.log("No schedule for today...")
+                    console.log("No schedule for today...")     
+                    NO_SCHEDULE_TODAY = true
+
+                    /*  as there is no schedule today,
+                        we are setting next opened day's
+                        start time and duration below
+                    */
+                    SCHOOL_START_TIME = data.next_day_data.next_day_start_time
+                    VIDEO_DURATION = data.next_day_data.next_day_vid_duration
                 }
+
+
+                NEXT_DAY_MESSAGE = data.next_day_data.next_day_message;
+                NEXT_SCHOOL_SCHEDULE = data.next_day_data.next_day_schedule;
+                NEXT_DATE = data.next_day_data.next_day;
+                SCHOOL_END_TIME = calculateEndTime(SCHOOL_START_TIME, VIDEO_DURATION);
+
+                console.log("*--- FETCHED TIMES ---*");
+                console.log("School Start Time: " + SCHOOL_START_TIME);
+                console.log("VIDEO_DURATION: " + VIDEO_DURATION);
+                console.log("School End Time: " + SCHOOL_END_TIME);
+                console.log("Next Date: " + NEXT_DATE);
+                console.log("\n");
+
             })
             .catch(error => {
                 console.error('Error fetching school start time from the API:', error);
@@ -256,5 +297,6 @@ function getSchoolStartTimeFromAPI() {
     }
 }
 
-// Call the function to get the school start time from the API and compare it with the current time
-getSchoolStartTimeFromAPI();
+(async () => {
+    await getSchoolStartTimeFromAPI();
+})();
