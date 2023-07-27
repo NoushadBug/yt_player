@@ -50,8 +50,17 @@ function playYouTubeVideoInFullscreen(videoId, width, height) {
     makeFullScreen()
 }
 
+function getCurrentSeconds() {
+    var now = new Date();
+    var seconds = now.getSeconds();
+    return seconds;
+}
+
+
 function getRemainingTime(currentTime, schoolStartTime) {
+    const currentSeconds = getCurrentSeconds();
     const current = new Date(checkTodayLocalDate() + " " + currentTime);
+    current.setSeconds(currentSeconds);
     var startdate = checkTodayLocalDate();
     let start = new Date(startdate + " " + schoolStartTime);
 
