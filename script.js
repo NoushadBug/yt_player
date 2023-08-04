@@ -71,7 +71,7 @@ function getRemainingTime(currentTime, schoolStartTime) {
         startdate = NEXT_DATE;
         // console.log(start + "\n")
     }
-    
+
     // console.log(current)
     let diff = (start.getTime() - current.getTime()) / 1000;
     const days = Math.floor(diff / 86400);
@@ -90,6 +90,20 @@ function getRemainingTime(currentTime, schoolStartTime) {
 }
 
 
+function timeToMinutes(timeString) {
+    const [time, period] = timeString.split(' ');
+    const [hours, minutes] = time.split(':').map(Number);
+
+    let totalMinutes = hours * 60 + minutes;
+
+    if (period === 'PM' && hours !== 12) {
+        totalMinutes += 12 * 60;
+    } else if (period === 'AM' && hours === 12) {
+        totalMinutes -= 12 * 60;
+    }
+
+    return totalMinutes;
+}
 
 async function startProcess() {
     // Show the loading image
@@ -107,7 +121,7 @@ async function startProcess() {
     }
 
     if (!fetchedSchoolStartTime) {
-       await getSchoolStartTimeFromAPI();
+        await getSchoolStartTimeFromAPI();
     }
 
     intervalId = setInterval(() => {
@@ -128,7 +142,7 @@ async function startProcess() {
                 .then(response => response.json())
                 .then(data => {
                     const videoId = data.video_id; // Assuming the API response returns a property 'videoId' with the actual YouTube video ID
-                    if (videoId != 'Not Found' && videoId) {
+                                        if (videoId != 'Not Found' && videoId) {
                         playYouTubeVideoInFullscreen(videoId, width, height);
                     }
                 })
@@ -144,8 +158,8 @@ async function startProcess() {
                     document.querySelector(".middle-container").classList.add("end-50")
 
                     // Check if the current time matches the school end time
-                    if (currentTime >= SCHOOL_END_TIME) {
-                        console.log("\nThe end time has been arrived (inside finally block): "+ currentTime)
+                    if (timeToMinutes(currentTime) >= timeToMinutes(SCHOOL_END_TIME)) {
+                        console.log("\nThe end time has been arrived (inside finally block): " + currentTime)
                         document.getElementById('video-container').innerHTML = '';
                         videoPlaying = false;
                         fetchedSchoolStartTime = false
@@ -197,26 +211,7 @@ function getCurrentTime(utcOffset = -7) {
 }
 
 function calculateEndTime(startTime, duration) {
-    if (isNaN(Date.parse(startTime)) || isNaN(parseInt(duration))) {
-        // Set SCHOOL_START_TIME as 1 hour less than getCurrentTime()
-        const currentTime = getCurrentTime();
-        const currentTimeHours = parseInt(currentTime.split(':')[0]);
-        const currentTimeMinutes = parseInt(currentTime.split(':')[1].split(' ')[0]);
 
-        let startHours = currentTimeHours - 1;
-        let startMinutes = currentTimeMinutes;
-
-        if (startHours < 0) {
-            startHours = 11;
-            startMinutes = 30;
-        }
-
-        startTime = 
-            startHours.toString().padStart(2, '0') + ':' + startMinutes.toString().padStart(2, '0') + ' ' + currentTime.split(' ')[1];
-        duration = '30m';
-    }
-
-    const start = new Date('1970-01-01 ' + startTime);
 
     let hours = 0;
     let minutes = 0;
@@ -232,6 +227,28 @@ function calculateEndTime(startTime, duration) {
     if (minutesMatch) {
         minutes = parseInt(minutesMatch[1]);
     }
+    if (isNaN(Date.parse(startTime)) || (isNaN(parseInt(duration)) && !hoursMatch && !minutesMatch)
+    ) {
+        // Set SCHOOL_START_TIME as 1 hour less than getCurrentTime()
+        const currentTime = getCurrentTime();
+        const currentTimeHours = parseInt(currentTime.split(':')[0]);
+        const currentTimeMinutes = parseInt(currentTime.split(':')[1].split(' ')[0]);
+
+        let startHours = currentTimeHours - 1;
+        let startMinutes = currentTimeMinutes;
+
+        if (startHours < 0) {
+            startHours = 11;
+            startMinutes = 30;
+        }
+
+        startTime =
+            startHours.toString().padStart(2, '0') + ':' + startMinutes.toString().padStart(2, '0') + ' ' + currentTime.split(' ')[1];
+        duration = '30m';
+    }
+
+    const start = new Date('1970-01-01 ' + startTime);
+
 
     // Add the duration to the start time
     const end = new Date(start.getTime() + hours * 60 * 60 * 1000 + minutes * 60 * 1000);
@@ -275,7 +292,7 @@ async function getSchoolStartTimeFromAPI() {
                     SCHOOL_START_TIME = data.time.start_time;
                     VIDEO_DURATION = data.time.video_duration;
                 } else {
-                    console.log("No schedule for today...")     
+                    console.log("No schedule for today...")
                     NO_SCHEDULE_TODAY = true
 
                     /*  as there is no schedule today,
