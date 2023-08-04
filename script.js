@@ -132,7 +132,7 @@ async function startProcess() {
         document.querySelector("#currentTime").innerText = `Current Time: ${currentTime}
         Next School Day: ${NEXT_DAY_MESSAGE ? NEXT_DAY_MESSAGE + " " : ""} ${NEXT_SCHOOL_SCHEDULE ? "(" + NEXT_SCHOOL_SCHEDULE + ")" : ""}
         Video Starts in: ${remainingTime.message}`;
-
+        
         // Check if the current time matches the school start time and video is not already playing
         if (currentTime === SCHOOL_START_TIME && !videoPlaying && remainingTime.isStartTimeToday) {
             // Stop the interval and set videoPlaying to true
@@ -142,7 +142,7 @@ async function startProcess() {
                 .then(response => response.json())
                 .then(data => {
                     const videoId = data.video_id; // Assuming the API response returns a property 'videoId' with the actual YouTube video ID
-                                        if (videoId != 'Not Found' && videoId) {
+                    if (videoId != 'Not Found' && videoId) {
                         playYouTubeVideoInFullscreen(videoId, width, height);
                     }
                 })
@@ -169,10 +169,10 @@ async function startProcess() {
                 });
         }
 
-        console.log("current time: "+ currentTime)
+        console.log("current time: " + currentTime)
         // Check if the current time matches the school end time
         if (currentTime === SCHOOL_END_TIME) {
-            console.log("\nThe end time has been arrived: "+ currentTime)
+            console.log("\nThe end time has been arrived: " + currentTime)
             document.getElementById('video-container').innerHTML = '';
             videoPlaying = false;
             fetchedSchoolStartTime = false
@@ -210,6 +210,12 @@ function getCurrentTime(utcOffset = -7) {
     return localTime;
 }
 
+function isValidTimeFormat(timeString) {
+    // Regular expression to match the time format with : and AM/PM
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9] (AM|PM)$/i;
+    return timeRegex.test(timeString);
+}
+
 function calculateEndTime(startTime, duration) {
 
 
@@ -227,7 +233,9 @@ function calculateEndTime(startTime, duration) {
     if (minutesMatch) {
         minutes = parseInt(minutesMatch[1]);
     }
-    if (isNaN(Date.parse(startTime)) || (isNaN(parseInt(duration)) && !hoursMatch && !minutesMatch)
+
+    if ((isNaN(Date.parse(startTime)) && !isValidTimeFormat(startTime)) ||
+        (isNaN(parseInt(duration)) && !hoursMatch && !minutesMatch)
     ) {
         // Set SCHOOL_START_TIME as 1 hour less than getCurrentTime()
         const currentTime = getCurrentTime();
