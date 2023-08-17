@@ -132,7 +132,7 @@ async function startProcess() {
         document.querySelector("#currentTime").innerText = `Current Time: ${currentTime}
         Next School Day: ${NEXT_DAY_MESSAGE ? NEXT_DAY_MESSAGE + " " : ""} ${NEXT_SCHOOL_SCHEDULE ? "(" + NEXT_SCHOOL_SCHEDULE + ")" : ""}
         Video Starts in: ${remainingTime.message}`;
-
+        
         // Check if the current time matches the school start time and video is not already playing
         if (currentTime === SCHOOL_START_TIME && !videoPlaying && remainingTime.isStartTimeToday) {
             // Stop the interval and set videoPlaying to true
