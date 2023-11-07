@@ -180,10 +180,9 @@ async function startProcess() {
     }, 1000);
 }
 
-function checkTodayLocalDate(offset = -7) {
+function checkTodayLocalDate() {
     var today = new Date();
-    var utc = today.getTime() + (today.getTimezoneOffset() * 60000);
-    today = new Date(utc + (3600000 * offset));
+    today.toLocaleString('en-US', { timeZone: "America/Los_Angeles" })
 
     var month = (today.getMonth() + 1).toString().padStart(2, '0');
     var day = today.getDate().toString().padStart(2, '0');
@@ -193,22 +192,14 @@ function checkTodayLocalDate(offset = -7) {
     return `${month}/${day}/${year}`;
 }
 
-function getCurrentTime(utcOffset = -7) {
-    var now = new Date();
-    var offsetMillis = utcOffset * 60 * 60 * 1000;
-    var localMillis = now.getTime() + now.getTimezoneOffset() * 60 * 1000 + offsetMillis;
-    var localDate = new Date(localMillis);
-
-    var hours = localDate.getHours();
-    var minutes = localDate.getMinutes();
-    var ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // Handle midnight (0 hours)
-    minutes = minutes < 10 ? '0' + minutes : minutes;
-
-    var localTime = hours + ':' + minutes + ' ' + ampm;
-    return localTime;
+function getCurrentTime() {
+  var timeZone = 'America/Los_Angeles';
+  var options = { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timeZone };
+  var d = new Date().toLocaleString('en-US', options);
+  console.log(d);
+  return d;
 }
+
 
 function isValidTimeFormat(timeString) {
     // Regular expression to match the time format with : and AM/PM
